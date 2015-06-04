@@ -7,4 +7,6 @@ Gameplay is intentionally ridiculously simple. There are a total of four buttons
 
 The application will accept button presses as well as mouse clicks, so you can press "L" to look for trouble, "A" to attack, "F" to flee, or "D" to drink your potion. If you're really in a hurry, just press "P" (for "play") and the game will do whatever is the logical next step. So if you want to just run through the game and ignore all my clever encounter verbs and monster descriptors, just hold down "P" and off you go!
 
-I suppose I ought to include a screenshot or something in here but I don't know how to do that yet, so maybe later. Please have fun and let me know if you have any questions!
+![Freyja's GUI](http://www.clutteredmind.com/github/freyja.png "Freya's GUI")
+
+Please have fun and let me know if you have any questions!
