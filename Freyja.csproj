@@ -52,6 +52,7 @@
     </Compile>
     <Compile Include="Source\FreyjaProgram.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Source\Monster.cs" />
     <EmbeddedResource Include="Forms\FreyjaForm.resx">
       <DependentUpon>FreyjaForm.cs</DependentUpon>
     </EmbeddedResource>
