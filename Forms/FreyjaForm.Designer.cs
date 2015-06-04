@@ -216,6 +216,7 @@
          this.buttonFlee.TabIndex = 27;
          this.buttonFlee.Text = "&Flee";
          this.buttonFlee.UseVisualStyleBackColor = true;
+         this.buttonFlee.Click += new System.EventHandler(this.ButtonFleeClick);
          // 
          // buttonAttack
          // 
@@ -226,6 +227,7 @@
          this.buttonAttack.TabIndex = 26;
          this.buttonAttack.Text = "&Attack";
          this.buttonAttack.UseVisualStyleBackColor = true;
+         this.buttonAttack.Click += new System.EventHandler(this.ButtonAttackClick);
          // 
          // buttonLookForTrouble
          // 
@@ -235,6 +237,7 @@
          this.buttonLookForTrouble.TabIndex = 25;
          this.buttonLookForTrouble.Text = "&Look For Trouble";
          this.buttonLookForTrouble.UseVisualStyleBackColor = true;
+         this.buttonLookForTrouble.Click += new System.EventHandler(this.ButtonLookForTroubleClick);
          // 
          // listBoxAdventureJournal
          // 
@@ -274,9 +277,13 @@
          this.Controls.Add(this.buttonAttack);
          this.Controls.Add(this.buttonLookForTrouble);
          this.Controls.Add(this.listBoxAdventureJournal);
+         this.KeyPreview = true;
          this.MinimumSize = new System.Drawing.Size(782, 382);
          this.Name = "FreyjaForm";
          this.Text = "Freyja";
+         this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FreyjaFormFormClosing);
+         this.Load += new System.EventHandler(this.FreyjaFormLoad);
+         this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FreyjaFormKeyDown);
          this.ResumeLayout(false);
          this.PerformLayout();
 

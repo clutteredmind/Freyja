@@ -90,10 +90,12 @@ namespace Freyja
       /// The monster that the player is currently fighting
       /// </summary>
       private Monster currentMonster;
+
       /// <summary>
       /// The time between HP recoveries
       /// </summary>
       private TimeSpan hpRecoveryInterval = new TimeSpan (0/*days*/, 0/*hours*/, 0/*minutes*/, 30/*seconds*/);
+
       /// <summary>
       /// The player's current hit points
       /// </summary>
@@ -283,6 +285,7 @@ namespace Freyja
          // clear the potion progress bar, while leaving the other one alone
          UpdateGui (-1, 0);
       }
+
       /// <summary>
       /// Signals the potion timer thread to continue
       /// </summary>
@@ -292,6 +295,7 @@ namespace Freyja
       {
          waitingForPotionRefillTimer.Set ();
       }
+
       /// <summary>
       /// Updates the GUI to enable/disable buttons, set progress bar values, etc.
       /// </summary>
@@ -392,5 +396,330 @@ namespace Freyja
       }
 
       #endregion Private Methods
+
+      /// <summary>
+      /// Calculates and returns the XP required for the player's level
+      /// </summary>
+      /// <param name="playerLevel">The level of the player for which the XP requirement must be calculated</param>
+      /// <returns>The XP required for the player's new level</returns>
+      private static double GetXpForLevel (int playerLevel)
+      {
+         // calculate the XP required.
+         // This is a geometric progression
+         return BaseXpRequirement * (1 - Math.Pow (GeometricSequenceScaleFactor, playerLevel + 1)) / (1 - GeometricSequenceScaleFactor);
+      }
+
+      /// <summary>
+      /// Adds a line to the monsters defeated log
+      /// </summary>
+      /// <param name="newEntry">The text of the new monster defeated entry. A newline will be appended to this string.</param>
+      private void AddMonsterToLog (string newEntry)
+      {
+         if (InvokeRequired)
+         {
+            BeginInvoke (new MethodInvoker (() => AddMonsterToLog (newEntry)));
+         }
+         else
+         {
+            // don't do anything if the form is disposed (which might happen if the application is closed just before this code executes)
+            if (!IsDisposed)
+            {
+               richTextBoxMonsterLog.Text += string.Format ("{0}\n", newEntry);
+               // normally, one would use "richTextBoxMonstersDefeated.SelectionStart = richTextBoxMonstersDefeated.Text.Length" here
+               // before ScrollToCarat. But since our lines are sometimes longer than the text box is wide, that makes things scroll
+               // horizontally as well as vertically and I think that looks pretty cheesy. So instead, we're going to move the carat
+               // to the beginning of the last line added and scroll to that
+               richTextBoxMonsterLog.SelectionStart = richTextBoxMonsterLog.Text.Length - newEntry.Length - 1;
+               richTextBoxMonsterLog.ScrollToCaret ();
+            }
+         }
+      }
+
+      /// <summary>
+      /// Attacks the current Monster
+      /// </summary>
+      private void AttackMonster ()
+      {
+         if (currentMonster != null)
+         {
+            // the player always does ((1-4) * level) damage, where level is always at least 1
+            var playerAttackResult = randomNumberSource.Next (1, 4) * (playerLevel == 0 ? 1 : playerLevel);
+            // the player always attacks first
+            currentMonster.TakeDamage (playerAttackResult);
+            AddEntryToJournal (string.Format ("Your attack did {0} point{1} of damage to the {2}!", playerAttackResult, playerAttackResult > 1 ? "s" : "", currentMonster.FullName));
+            // if that didn't defeat the monster, it gets to counterattack
+            if (!currentMonster.IsDead)
+            {
+               AddEntryToJournal (string.Format ("The {0} has {1} hit point{2} left.", currentMonster.FullName, currentMonster.CurrentMonsterHitPoints,
+                                               currentMonster.CurrentMonsterHitPoints > 1 ? "s" : ""));
+               var monsterAttackDamage = currentMonster.Attack ();
+               // the player is not allowed to die
+               if (monsterAttackDamage >= playerCurrentHitPoints)
+               {
+                  monsterAttackDamage = playerCurrentHitPoints - 1;
+               }
+               playerCurrentHitPoints -= monsterAttackDamage;
+               // check to see if we need to flee from the monster
+               // sometimes, the above math results in the monster doing 0 points of damage. that looks stupid when displayed, so we're going to cheat
+               // and make it always do at least one point of damage, even if it technically did no damage
+               if (monsterAttackDamage <= 0)
+               {
+                  monsterAttackDamage = 1;
+               }
+               if (playerCurrentHitPoints == 1)
+               {
+                  AddEntryToJournal (string.Format ("The {0} has gravely wounded you for {1} point{2} of damage, but you have managed to escape to fight another day.",
+                                                  currentMonster.FullName, monsterAttackDamage, monsterAttackDamage > 1 ? "s" : ""));
+                  // log the player's cowardly flight from danger
+                  AddMonsterToLog (string.Format ("Fled from a level {0} {1}", currentMonster.MonsterLevel, currentMonster.FullName));
+                  // get rid of the monster
+                  currentMonster = null;
+                  // clear encounter text
+                  SetEncounterText ("");
+               }
+               else
+               {
+                  AddEntryToJournal (string.Format ("Ouch! The {0} attacked for {1} point{2} of damage!", currentMonster.FullName, monsterAttackDamage, monsterAttackDamage > 1 ? "s" : ""));
+               }
+            }
+            else
+            {
+               // the player defeated the critter
+               AddEntryToJournal (string.Format ("You've defeated the {0}!", currentMonster.FullName));
+               // award XP. The player gets 10 times the monster's level plus one XP for each hit point the monster had
+               var xpAward = (10 * currentMonster.MonsterLevel) + currentMonster.MaximumMonsterHitPoints;
+               AddEntryToJournal (string.Format ("You earned {0} XP for defeating the {1}.", xpAward, currentMonster.FullName));
+               playerTotalXp += xpAward;
+               // log the victory
+               var victoryString = string.Format ("You defeated a level {0} {1} with {2} HP ({3} XP awarded)", currentMonster.MonsterLevel, currentMonster.FullName,
+                                                 currentMonster.MaximumMonsterHitPoints, xpAward);
+               AddMonsterToLog (victoryString);
+               SetEncounterText (victoryString);
+               // decrement XP required for next level
+               playerXpToNextLevel -= xpAward;
+               if (playerXpToNextLevel <= 0)
+               {
+                  // the player has leveled up
+                  playerLevel++;
+                  // add additional hit points
+                  var additionalHitPoints = randomNumberSource.Next (1, 10) * 2;
+                  AddEntryToJournal (string.Format ("Congratulations! You are now level {0} and now have {1} additional hit point{2}.", playerLevel, additionalHitPoints,
+                                                  additionalHitPoints > 1 ? "s" : ""));
+                  playerMaximumHitPoints += additionalHitPoints;
+                  // make the new HP immediately usable
+                  playerCurrentHitPoints += additionalHitPoints;
+                  // update XP requirement
+                  playerXpToNextLevel += (int)GetXpForLevel (playerLevel);
+               }
+               // get rid of the dead monster
+               currentMonster = null;
+            }
+            UpdateGui ();
+         }
+      }
+
+      /// <summary>
+      /// Attacks the current monster, if any
+      /// </summary>
+      /// <param name="sender"></param>
+      /// <param name="eventArgs"></param>
+      private void ButtonAttackClick (object sender, EventArgs eventArgs)
+      {
+         AttackMonster ();
+      }
+
+      /// <summary>
+      /// Allows the user to flee the current critter
+      /// </summary>
+      /// <param name="sender"></param>
+      /// <param name="eventArgs"></param>
+      private void ButtonFleeClick (object sender, EventArgs eventArgs)
+      {
+         FleeFromMonster ();
+      }
+
+      /// <summary>
+      /// Lets the player go looking for trouble, that is, look for a monster to fight
+      /// </summary>
+      /// <param name="sender"></param>
+      /// <param name="eventArgs"></param>
+      private void ButtonLookForTroubleClick (object sender, EventArgs eventArgs)
+      {
+         LookForTrouble ();
+      }
+
+      /// <summary>
+      /// Allows the player to drink a poition and refill his/her health
+      /// </summary>
+      private void DrinkPotion ()
+      {
+         playerCurrentHitPoints = playerMaximumHitPoints;
+         AddEntryToJournal ("Your health is fully recovered!");
+         // start the potion recovery timer
+         potionRefillTimerThread.RunWorkerAsync ();
+         // update the GUI, this will cause the HP recovery thread to be canceled
+         UpdateGui ();
+      }
+
+      /// <summary>
+      /// Allows the player to flee from the current monster
+      /// </summary>
+      private void FleeFromMonster ()
+      {
+         if (currentMonster != null)
+         {
+            // add a journal entry
+            AddEntryToJournal (string.Format ("You bravely ran away. Good thing, too. That {0} couldn't have been more {1}.", currentMonster.MonsterType, currentMonster.Descriptor.ToLower ()));
+            // log the monster from which the player fled
+            AddMonsterToLog (string.Format ("Fled from a level {0} {1}", currentMonster.MonsterLevel, currentMonster.FullName));
+            // get rid of the monster
+            currentMonster = null;
+            // clear encounter text
+            SetEncounterText ("");
+            // update the GUI
+            UpdateGui ();
+         }
+      }
+
+      /// <summary>
+      /// Handler for the FormClosing event. Attempts to stop the HP recovery and potion refill threads
+      /// </summary>
+      /// <param name="sender"></param>
+      /// <param name="formClosingEventArgs"></param>
+      private void FreyjaFormFormClosing (object sender, FormClosingEventArgs formClosingEventArgs)
+      {
+         // check to see if the HP recovery thread is running
+         if (hpRecoveryTimerThread.IsBusy)
+         {
+            // cancel the hp recovery timer thread
+            hpRecoveryTimerThread.CancelAsync ();
+            // signal the corresponding reset event, in case the thread's waiting
+            waitingForHpRecoveryTimer.Set ();
+         }
+         // check to see if potion refill thread is running
+         if (potionRefillTimerThread.IsBusy)
+         {
+            // cancel potion refill thread
+            potionRefillTimerThread.CancelAsync ();
+            // signal the corresponding reset event, in case the thread's waiting
+            waitingForPotionRefillTimer.Set ();
+         }
+      }
+
+      /// <summary>
+      /// Intercepts certain key presses to allow the player to play without having to use the mouse to click buttons on the form
+      /// </summary>
+      /// <param name="sender"></param>
+      /// <param name="keyEventArgs"></param>
+      private void FreyjaFormKeyDown (object sender, KeyEventArgs keyEventArgs)
+      {
+         switch (keyEventArgs.KeyCode)
+         {
+            case Keys.A:
+               // attack
+               AttackMonster ();
+               break;
+
+            case Keys.D:
+               // drink potion, if the player's below his or her maximum health
+               if (playerCurrentHitPoints < playerMaximumHitPoints)
+               {
+                  DrinkPotion ();
+               }
+               break;
+
+            case Keys.F:
+               // flee
+               FleeFromMonster ();
+               break;
+
+            case Keys.L:
+               // look for trouble
+               LookForTrouble ();
+               break;
+
+            case Keys.P:
+               // play
+               if (playerCurrentHitPoints == 1 && !potionRefillTimerThread.IsBusy)
+               {
+                  // if the player's out of health and there's a potion to drink, drink it
+                  DrinkPotion ();
+               }
+               if (currentMonster == null && playerCurrentHitPoints > 1)
+               {
+                  // if the player's not currently fighting a monster, look for a new one
+                  LookForTrouble ();
+               }
+               else
+               {
+                  // attack the current monster
+                  AttackMonster ();
+               }
+               break;
+
+            default:
+               // including a default case is just good practice
+               break;
+         }
+         // let the key press fall through to whatever control is selected, just in case it is needed
+         keyEventArgs.Handled = false;
+      }
+
+      /// <summary>
+      /// The form's Load event handler
+      /// </summary>
+      /// <param name="sender"></param>
+      /// <param name="eventArgs"></param>
+      private void FreyjaFormLoad (object sender, EventArgs eventArgs)
+      {
+         // update the GUI
+         UpdateGui ();
+      }
+
+      /// <summary>
+      /// Let the player go looking for a monster to fight
+      /// </summary>
+      private void LookForTrouble ()
+      {
+         if (currentMonster == null)
+         {
+            // get a new monster
+            currentMonster = new Monster (playerLevel);
+            var encounterVerb = lookingForTroubleVerbs [randomNumberSource.Next (0, lookingForTroubleVerbs.Count - 1)];
+            // make sure we don't get the same encounter verb twice in a row
+            while (encounterVerb == lastEncounterVerb)
+            {
+               encounterVerb = lookingForTroubleVerbs [randomNumberSource.Next (0, lookingForTroubleVerbs.Count - 1)];
+            }
+            lastEncounterVerb = encounterVerb;
+            var encounterString = string.Format ("You've {0} a level {1} {2} with {3} hit point{4}!",
+                                                encounterVerb, currentMonster.MonsterLevel,
+                                                currentMonster.FullName, currentMonster.MaximumMonsterHitPoints, currentMonster.MaximumMonsterHitPoints != 1 ? "s" : "");
+            SetEncounterText (encounterString);
+            AddEntryToJournal (encounterString);
+            UpdateGui ();
+         }
+      }
+
+      /// <summary>
+      /// Sets the text of the encounter notification label
+      /// </summary>
+      /// <param name="newEncounterString">A string describing the encounter that gets displayed on the main form</param>
+      private void SetEncounterText (string newEncounterString)
+      {
+         if (InvokeRequired)
+         {
+            BeginInvoke (new MethodInvoker (() => SetEncounterText (newEncounterString)));
+         }
+         else
+         {
+            // don't do anything if the form is disposed (which might happen if the application is closed just before this code executes)
+            if (!IsDisposed)
+            {
+               // set the text
+               labelNotification.Text = newEncounterString;
+            }
+         }
+      }
    }
 }

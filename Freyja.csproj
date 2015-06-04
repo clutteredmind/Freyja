@@ -50,6 +50,7 @@
     <Compile Include="Forms\FreyjaForm.Designer.cs">
       <DependentUpon>FreyjaForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Source\Extensions.cs" />
     <Compile Include="Source\FreyjaProgram.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source\Monster.cs" />
