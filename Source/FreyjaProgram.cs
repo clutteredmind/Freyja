@@ -4,22 +4,22 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-namespace Freyja
+namespace Freyja.Source
 {
-   using System;
-   using System.Windows.Forms;
+    using System;
+    using System.Windows.Forms;
 
-   static class FreyjaProgram
-   {
-      /// <summary>
-      /// The main entry point for the application.
-      /// </summary>
-      [STAThread]
-      static void Main ()
-      {
-         Application.EnableVisualStyles ();
-         Application.SetCompatibleTextRenderingDefault (false);
-         Application.Run (new FreyjaForm ());
-      }
-   }
+    static class FreyjaProgram
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FreyjaForm());
+        }
+    }
 }
