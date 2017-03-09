@@ -343,7 +343,7 @@ namespace Freyja
                         hpRecoveryTimerThread.CancelAsync();
                     }
                     // update the hit points display
-                    labelPlayerHitPointsDisplay.Text = string.Format("{0}/{1}", playerCurrentHitPoints, playerMaximumHitPoints);
+                    labelPlayerHitPointsDisplay.Text = $"{playerCurrentHitPoints}/{playerMaximumHitPoints}";
                     // display level
                     labelPlayerLevelDisplay.Text = playerLevel.ToString();
                     // update XP display
@@ -412,7 +412,7 @@ namespace Freyja
                 // don't do anything if the form is disposed (which might happen if the application is closed just before this code executes)
                 if (!IsDisposed)
                 {
-                    richTextBoxMonsterLog.Text += string.Format("{0}\n", newEntry);
+                    richTextBoxMonsterLog.Text += $"{newEntry}\n";
                     // normally, one would use "richTextBoxMonstersDefeated.SelectionStart = richTextBoxMonstersDefeated.Text.Length" here
                     // before ScrollToCaret. But since our lines are sometimes longer than the text box is wide, that makes things scroll
                     // horizontally as well as vertically and I think that looks pretty cheesy. So instead, we're going to move the caret
@@ -459,7 +459,7 @@ namespace Freyja
                         AddEntryToJournal(string.Format("The {0} has gravely wounded you for {1} point{2} of damage, but you have managed to escape to fight another day.",
                                                         currentMonster.FullName, monsterAttackDamage, monsterAttackDamage > 1 ? "s" : ""));
                         // log the player's cowardly flight from danger
-                        AddMonsterToLog(string.Format("Fled from a level {0} {1}", currentMonster.MonsterLevel, currentMonster.FullName));
+                        AddMonsterToLog($"Fled from a level {currentMonster.MonsterLevel} {currentMonster.FullName}");
                         // get rid of the monster
                         currentMonster = null;
                         // clear encounter text
@@ -473,14 +473,13 @@ namespace Freyja
                 else
                 {
                     // the player defeated the critter
-                    AddEntryToJournal(string.Format("You've defeated the {0}!", currentMonster.FullName));
+                    AddEntryToJournal($"You've defeated the {currentMonster.FullName}!");
                     // award XP. The player gets 10 times the monster's level plus one XP for each hit point the monster had
                     var xpAward = (10 * currentMonster.MonsterLevel) + currentMonster.MaximumMonsterHitPoints;
-                    AddEntryToJournal(string.Format("You earned {0} XP for defeating the {1}.", xpAward, currentMonster.FullName));
+                    AddEntryToJournal($"You earned {xpAward} XP for defeating the {currentMonster.FullName}");
                     playerTotalXp += xpAward;
                     // log the victory
-                    var victoryString = string.Format("You defeated a level {0} {1} with {2} HP ({3} XP awarded)", currentMonster.MonsterLevel, currentMonster.FullName,
-                                                      currentMonster.MaximumMonsterHitPoints, xpAward);
+                    var victoryString = $"You defeated a level {currentMonster.MonsterLevel} {currentMonster.FullName} with {currentMonster.MaximumMonsterHitPoints} HP ({xpAward} XP awarded)";
                     AddMonsterToLog(victoryString);
                     SetEncounterText(victoryString);
                     // decrement XP required for next level
@@ -557,9 +556,9 @@ namespace Freyja
             if (currentMonster != null)
             {
                 // add a journal entry
-                AddEntryToJournal(string.Format("You bravely ran away. Good thing, too. That {0} couldn't have been more {1}.", currentMonster.MonsterType, currentMonster.Descriptor.ToLower()));
+                AddEntryToJournal($"You bravely ran away. Good thing, too. That {currentMonster.MonsterType} couldn't have been more {currentMonster.Descriptor.ToLower()}.");
                 // log the monster from which the player fled
-                AddMonsterToLog(string.Format("Fled from a level {0} {1}", currentMonster.MonsterLevel, currentMonster.FullName));
+                AddMonsterToLog($"Fled from a level {currentMonster.MonsterLevel} {currentMonster.FullName}.");
                 // get rid of the monster
                 currentMonster = null;
                 // clear encounter text
