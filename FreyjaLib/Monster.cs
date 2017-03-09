@@ -11,8 +11,6 @@ namespace FreyjaLib
 
     public class Monster
     {
-        #region Private Fields
-
         /// <summary>
         /// A source of random numbers
         /// </summary>
@@ -74,10 +72,6 @@ namespace FreyjaLib
                                                          "Zealot",  "Zombie"
                                                       };
 
-        #endregion Private Fields
-
-        #region Public Constructors
-
         /// <summary>
         /// Creates a new monster
         /// </summary>
@@ -105,16 +99,12 @@ namespace FreyjaLib
             // it's not dead yet!
             IsDead = false;
             // calculate hit points
-            MaximumMonsterHitPoints = 0;
+            MaximumMonsterHitPoints = 1;
             // using a fancy Ruby-like extension method here to calculate monster hit points
             MonsterLevel.Times(() => MaximumMonsterHitPoints += RandomNumberSource.Next(1, 10));
             // current health is the same as maximum, to start
             CurrentMonsterHitPoints = MaximumMonsterHitPoints;
         }
-
-        #endregion Public Constructors
-
-        #region Public Properties
 
         /// <summary>
         /// The monster's hit points. Set at creation.
@@ -157,10 +147,6 @@ namespace FreyjaLib
         /// </summary>
         public string MonsterType { get; private set; }
 
-        #endregion Public Properties
-
-        #region Public Methods
-
         /// <summary>
         /// Allows the monster to do damage to the player
         /// </summary>
@@ -185,7 +171,5 @@ namespace FreyjaLib
                 IsDead = true;
             }
         }
-
-        #endregion Public Methods
     }
 }

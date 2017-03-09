@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Freyja", "Freyja.csproj", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FreyjaLib", "FreyjaLib\FreyjaLib.csproj", "{419DD84A-01D4-4534-8664-8AA13958FFFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FreyjaTests", "FreyjaTests\FreyjaTests.csproj", "{BB65D196-E0CF-4F44-8AB9-C15E46CC3174}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{419DD84A-01D4-4534-8664-8AA13958FFFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{419DD84A-01D4-4534-8664-8AA13958FFFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{419DD84A-01D4-4534-8664-8AA13958FFFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB65D196-E0CF-4F44-8AB9-C15E46CC3174}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB65D196-E0CF-4F44-8AB9-C15E46CC3174}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB65D196-E0CF-4F44-8AB9-C15E46CC3174}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB65D196-E0CF-4F44-8AB9-C15E46CC3174}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
