@@ -414,7 +414,7 @@ namespace Freyja
                 {
                     richTextBoxMonsterLog.Text += string.Format("{0}\n", newEntry);
                     // normally, one would use "richTextBoxMonstersDefeated.SelectionStart = richTextBoxMonstersDefeated.Text.Length" here
-                    // before ScrollToCarat. But since our lines are sometimes longer than the text box is wide, that makes things scroll
+                    // before ScrollToCaret. But since our lines are sometimes longer than the text box is wide, that makes things scroll
                     // horizontally as well as vertically and I think that looks pretty cheesy. So instead, we're going to move the caret
                     // to the beginning of the last line added and scroll to that
                     richTextBoxMonsterLog.SelectionStart = richTextBoxMonsterLog.Text.Length - newEntry.Length - 1;
