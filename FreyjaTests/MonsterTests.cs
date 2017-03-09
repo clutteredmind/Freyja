@@ -9,6 +9,9 @@ namespace FreyjaTests
     using FreyjaLib;
     using NUnit.Framework;
 
+    /// <summary>
+    /// Tests for the Monster class
+    /// </summary>
     [TestFixture]
     public class MonsterTests
     {

@@ -45,7 +45,9 @@
   <ItemGroup>
     <Compile Include="ExtensionTests.cs" />
     <Compile Include="MonsterTests.cs" />
+    <Compile Include="PlayerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RandomNumberSourceTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FreyjaLib\FreyjaLib.csproj">

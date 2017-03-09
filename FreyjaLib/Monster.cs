@@ -9,13 +9,11 @@ namespace FreyjaLib
     using System;
     using System.Collections.Generic;
 
+    /// <summary>
+    /// Represents a monster for the player to fight
+    /// </summary>
     public class Monster
     {
-        /// <summary>
-        /// A source of random numbers
-        /// </summary>
-        private readonly static Random RandomNumberSource = new Random();
-
         /// <summary>
         /// I don't want the same descriptor to come up twice in a row, because I think that looks cheesy
         /// </summary>
@@ -79,29 +77,29 @@ namespace FreyjaLib
         public Monster(int playerLevel)
         {
             // set descriptor
-            Descriptor = descriptors[RandomNumberSource.Next(descriptors.Count)];
+            Descriptor = descriptors[RandomNumberSource.GetNextInt(descriptors.Count)];
             while (Descriptor == lastDescriptor)
             {
-                Descriptor = descriptors[RandomNumberSource.Next(descriptors.Count)];
+                Descriptor = descriptors[RandomNumberSource.GetNextInt(descriptors.Count)];
             }
             // remember descriptor
             lastDescriptor = Descriptor;
             // set type
-            MonsterType = monsterTypes[RandomNumberSource.Next(monsterTypes.Count)];
+            MonsterType = monsterTypes[RandomNumberSource.GetNextInt(monsterTypes.Count)];
             while (MonsterType == lastMonsterType)
             {
-                MonsterType = monsterTypes[RandomNumberSource.Next(monsterTypes.Count)];
+                MonsterType = monsterTypes[RandomNumberSource.GetNextInt(monsterTypes.Count)];
             }
             // remember monster type
             lastMonsterType = MonsterType;
             // set level
-            MonsterLevel = RandomNumberSource.Next(playerLevel >= 2 ? playerLevel - 2 : 0, playerLevel + 2);
+            MonsterLevel = RandomNumberSource.GetNextInt(playerLevel >= 2 ? playerLevel - 2 : 0, playerLevel + 2);
             // it's not dead yet!
             IsDead = false;
             // calculate hit points
             MaximumMonsterHitPoints = 1;
             // using a fancy Ruby-like extension method here to calculate monster hit points
-            MonsterLevel.Times(() => MaximumMonsterHitPoints += RandomNumberSource.Next(1, 10));
+            MonsterLevel.Times(() => MaximumMonsterHitPoints += RandomNumberSource.GetNextInt(1, 10));
             // current health is the same as maximum, to start
             CurrentMonsterHitPoints = MaximumMonsterHitPoints;
         }
@@ -154,7 +152,7 @@ namespace FreyjaLib
         public int Attack()
         {
             // the monster always does ((1-4) * (level/2)) damage (where level is always >= 1)
-            return (RandomNumberSource.Next(1, 4) * ((MonsterLevel / 2 < 1 ? 1 : MonsterLevel / 2)));
+            return (RandomNumberSource.GetNextInt(1, 4) * ((MonsterLevel / 2 < 1 ? 1 : MonsterLevel / 2)));
         }
 
         /// <summary>

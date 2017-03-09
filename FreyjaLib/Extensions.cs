@@ -8,6 +8,9 @@ namespace FreyjaLib
 {
     using System;
 
+    /// <summary>
+    /// Holds extension methods for the Freyja application
+    /// </summary>
     public static class Extensions
     {
         /// <summary>

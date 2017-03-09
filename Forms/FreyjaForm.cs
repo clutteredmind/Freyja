@@ -70,11 +70,6 @@ namespace Freyja
         private readonly BackgroundWorker potionRefillTimerThread;
 
         /// <summary>
-        /// A random number source
-        /// </summary>
-        private readonly Random randomNumberSource = new Random();
-
-        /// <summary>
         /// A wait handle used by the HP recovery thread to count seconds
         /// </summary>
         private readonly AutoResetEvent waitingForHpRecoveryTimer = new AutoResetEvent(false);
@@ -83,6 +78,11 @@ namespace Freyja
         /// A wait handle used by the potion recovery thread to count seconds
         /// </summary>
         private readonly AutoResetEvent waitingForPotionRefillTimer = new AutoResetEvent(false);
+
+        /// <summary>
+        /// The player
+        /// </summary>
+        private Player player;
 
         /// <summary>
         /// The monster that the player is currently fighting
@@ -95,31 +95,6 @@ namespace Freyja
         private TimeSpan hpRecoveryInterval = new TimeSpan(0/*days*/, 0/*hours*/, 0/*minutes*/, 30/*seconds*/);
 
         /// <summary>
-        /// The player's current hit points
-        /// </summary>
-        private int playerCurrentHitPoints;
-
-        /// <summary>
-        /// The player's current level
-        /// </summary>
-        private int playerLevel;
-
-        /// <summary>
-        /// The player's maximum hit points
-        /// </summary>
-        private int playerMaximumHitPoints;
-
-        /// <summary>
-        /// The player's total XP
-        /// </summary>
-        private int playerTotalXp;
-
-        /// <summary>
-        /// The amount of XP the player needs to get to the next level
-        /// </summary>
-        private int playerXpToNextLevel;
-
-        /// <summary>
         /// The time between potion uses
         /// </summary>
         private TimeSpan potionRefillInterval = new TimeSpan(0/*days*/, 1/*hours*/, 0/*minutes*/, 0/*seconds*/);
@@ -129,12 +104,8 @@ namespace Freyja
         /// </summary>
         public FreyjaForm()
         {
-            // initialize player values
-            playerLevel = 0;
-            playerMaximumHitPoints = 100;
-            playerCurrentHitPoints = playerMaximumHitPoints;
-            playerXpToNextLevel = BaseXpRequirement;
-            playerTotalXp = 0;
+            // create the player
+            player = new Player();
             // set up HP recovery timer thread
             hpRecoveryTimerThread = new BackgroundWorker { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
             hpRecoveryTimerThread.DoWork += HpRecoveryTimerThreadDoWork;
@@ -214,12 +185,8 @@ namespace Freyja
         /// <param name="runWorkerCompletedEventArgs"></param>
         private void HpRecoveryTimerThreadRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs runWorkerCompletedEventArgs)
         {
-            // only increment the player's hit points if they are below his or her maximum
-            if (playerCurrentHitPoints < playerMaximumHitPoints)
-            {
-                int increment = (playerMaximumHitPoints - playerCurrentHitPoints >= 5) ? 5 : playerMaximumHitPoints - playerCurrentHitPoints;
-                playerCurrentHitPoints += increment;
-            }
+            // heal the player
+            player.Heal(5);
             // the progress bar will be full when this event fires, so we'll zero that out
             UpdateGui(0);
         }
@@ -331,24 +298,24 @@ namespace Freyja
                         progressBarPotionRefillTimer.Value = potionRefillProgressBarValue;
                     }
                     // decide whether or not we should be running the HP timer
-                    if (playerCurrentHitPoints < playerMaximumHitPoints && !hpRecoveryTimerThread.IsBusy)
+                    if (player.CurrentHitPoints < player.MaximumHitPoints && !hpRecoveryTimerThread.IsBusy)
                     {
                         // the player's hit points are below maximum and the recovery thread is not running, so start it
                         hpRecoveryTimerThread.RunWorkerAsync();
                     }
-                    else if (playerCurrentHitPoints == playerMaximumHitPoints && hpRecoveryTimerThread.IsBusy)
+                    else if (player.CurrentHitPoints == player.MaximumHitPoints && hpRecoveryTimerThread.IsBusy)
                     {
                         // the player's hit points are completely recovered, but the recovery thread is still running
                         // honestly, this should never happen and this else clause might be over-engineering
                         hpRecoveryTimerThread.CancelAsync();
                     }
                     // update the hit points display
-                    labelPlayerHitPointsDisplay.Text = $"{playerCurrentHitPoints}/{playerMaximumHitPoints}";
+                    labelPlayerHitPointsDisplay.Text = $"{player.CurrentHitPoints}/{player.MaximumHitPoints}";
                     // display level
-                    labelPlayerLevelDisplay.Text = playerLevel.ToString();
+                    labelPlayerLevelDisplay.Text = player.Level.ToString();
                     // update XP display
-                    labelPlayerTotalXpDisplay.Text = playerTotalXp.ToString();
-                    labelPlayerXpToNextLevelDisplay.Text = playerXpToNextLevel.ToString();
+                    labelPlayerTotalXpDisplay.Text = player.Xp.ToString();
+                    labelPlayerXpToNextLevelDisplay.Text = player.XpToNextLevel.ToString();
                     // the attack and flee buttons should be enabled if there is an encounter happening
                     // and the look for trouble button should be disabled if there is a current monster
                     if (currentMonster != null)
@@ -363,13 +330,13 @@ namespace Freyja
                         buttonAttack.Enabled = false;
                         buttonFlee.Enabled = false;
                         // the look for trouble button should only be enabled if the player has enough health to go looking for trouble
-                        if (playerCurrentHitPoints > 1)
+                        if (player.CurrentHitPoints > 1)
                         {
                             buttonLookForTrouble.Enabled = true;
                         }
                     }
                     // the drink potion button should be disabled if the player is at full health
-                    buttonDrinkPotion.Enabled = playerCurrentHitPoints != playerMaximumHitPoints;
+                    buttonDrinkPotion.Enabled = player.CurrentHitPoints < player.MaximumHitPoints;
                     // decide which of the potion button and potion progress bar should be visible
                     if (potionRefillTimerThread.IsBusy)
                     {
@@ -383,18 +350,6 @@ namespace Freyja
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Calculates and returns the XP required for the player's level
-        /// </summary>
-        /// <param name="playerLevel">The level of the player for which the XP requirement must be calculated</param>
-        /// <returns>The XP required for the player's new level</returns>
-        private static double GetXpForLevel(int playerLevel)
-        {
-            // calculate the XP required.
-            // This is a geometric progression
-            return BaseXpRequirement * (1 - Math.Pow(GeometricSequenceScaleFactor, playerLevel + 1)) / (1 - GeometricSequenceScaleFactor);
         }
 
         /// <summary>
@@ -430,9 +385,8 @@ namespace Freyja
         {
             if (currentMonster != null)
             {
-                // the player always does ((1-4) * level) damage, where level is always at least 1
-                var playerAttackResult = randomNumberSource.Next(1, 4) * (playerLevel == 0 ? 1 : playerLevel);
                 // the player always attacks first
+                var playerAttackResult = player.Attack();
                 currentMonster.TakeDamage(playerAttackResult);
                 AddEntryToJournal(string.Format("Your attack did {0} point{1} of damage to the {2}!", playerAttackResult, playerAttackResult > 1 ? "s" : "", currentMonster.FullName));
                 // if that didn't defeat the monster, it gets to counterattack
@@ -441,12 +395,7 @@ namespace Freyja
                     AddEntryToJournal(string.Format("The {0} has {1} hit point{2} left.", currentMonster.FullName, currentMonster.CurrentMonsterHitPoints,
                                                     currentMonster.CurrentMonsterHitPoints > 1 ? "s" : ""));
                     var monsterAttackDamage = currentMonster.Attack();
-                    // the player is not allowed to die
-                    if (monsterAttackDamage >= playerCurrentHitPoints)
-                    {
-                        monsterAttackDamage = playerCurrentHitPoints - 1;
-                    }
-                    playerCurrentHitPoints -= monsterAttackDamage;
+                    player.TakeDamage(monsterAttackDamage);
                     // check to see if we need to flee from the monster
                     // sometimes, the above math results in the monster doing 0 points of damage. that looks stupid when displayed, so we're going to cheat
                     // and make it always do at least one point of damage, even if it technically did no damage
@@ -454,7 +403,7 @@ namespace Freyja
                     {
                         monsterAttackDamage = 1;
                     }
-                    if (playerCurrentHitPoints == 1)
+                    if (player.CurrentHitPoints == 1)
                     {
                         AddEntryToJournal(string.Format("The {0} has gravely wounded you for {1} point{2} of damage, but you have managed to escape to fight another day.",
                                                         currentMonster.FullName, monsterAttackDamage, monsterAttackDamage > 1 ? "s" : ""));
@@ -477,27 +426,11 @@ namespace Freyja
                     // award XP. The player gets 10 times the monster's level plus one XP for each hit point the monster had
                     var xpAward = (10 * currentMonster.MonsterLevel) + currentMonster.MaximumMonsterHitPoints;
                     AddEntryToJournal($"You earned {xpAward} XP for defeating the {currentMonster.FullName}");
-                    playerTotalXp += xpAward;
+                    player.AwardXp(xpAward);
                     // log the victory
                     var victoryString = $"You defeated a level {currentMonster.MonsterLevel} {currentMonster.FullName} with {currentMonster.MaximumMonsterHitPoints} HP ({xpAward} XP awarded)";
                     AddMonsterToLog(victoryString);
                     SetEncounterText(victoryString);
-                    // decrement XP required for next level
-                    playerXpToNextLevel -= xpAward;
-                    if (playerXpToNextLevel <= 0)
-                    {
-                        // the player has leveled up
-                        playerLevel++;
-                        // add additional hit points
-                        var additionalHitPoints = randomNumberSource.Next(1, 10) * 2;
-                        AddEntryToJournal(string.Format("Congratulations! You are now level {0} and now have {1} additional hit point{2}.", playerLevel, additionalHitPoints,
-                                                        additionalHitPoints > 1 ? "s" : ""));
-                        playerMaximumHitPoints += additionalHitPoints;
-                        // make the new HP immediately usable
-                        playerCurrentHitPoints += additionalHitPoints;
-                        // update XP requirement
-                        playerXpToNextLevel += (int)GetXpForLevel(playerLevel);
-                    }
                     // get rid of the dead monster
                     currentMonster = null;
                 }
@@ -540,7 +473,8 @@ namespace Freyja
         /// </summary>
         private void DrinkPotion()
         {
-            playerCurrentHitPoints = playerMaximumHitPoints;
+            // heal player to full
+            player.Heal(player.MaximumHitPoints);
             AddEntryToJournal("Your health is fully recovered!");
             // start the potion recovery timer
             potionRefillTimerThread.RunWorkerAsync();
@@ -609,7 +543,7 @@ namespace Freyja
 
                 case Keys.D:
                     // drink potion, if the player's below his or her maximum health
-                    if (playerCurrentHitPoints < playerMaximumHitPoints)
+                    if (player.CurrentHitPoints < player.MaximumHitPoints)
                     {
                         DrinkPotion();
                     }
@@ -627,12 +561,12 @@ namespace Freyja
 
                 case Keys.P:
                     // play
-                    if (playerCurrentHitPoints == 1 && !potionRefillTimerThread.IsBusy)
+                    if (player.CurrentHitPoints == 1 && !potionRefillTimerThread.IsBusy)
                     {
                         // if the player's out of health and there's a potion to drink, drink it
                         DrinkPotion();
                     }
-                    if (currentMonster == null && playerCurrentHitPoints > 1)
+                    if (currentMonster == null && player.CurrentHitPoints > 1)
                     {
                         // if the player's not currently fighting a monster, look for a new one
                         LookForTrouble();
@@ -671,12 +605,12 @@ namespace Freyja
             if (currentMonster == null)
             {
                 // get a new monster
-                currentMonster = new Monster(playerLevel);
-                var encounterVerb = lookingForTroubleVerbs[randomNumberSource.Next(0, lookingForTroubleVerbs.Count - 1)];
+                currentMonster = new Monster(player.Level);
+                var encounterVerb = lookingForTroubleVerbs[RandomNumberSource.GetNextInt(0, lookingForTroubleVerbs.Count - 1)];
                 // make sure we don't get the same encounter verb twice in a row
                 while (encounterVerb == lastEncounterVerb)
                 {
-                    encounterVerb = lookingForTroubleVerbs[randomNumberSource.Next(0, lookingForTroubleVerbs.Count - 1)];
+                    encounterVerb = lookingForTroubleVerbs[RandomNumberSource.GetNextInt(0, lookingForTroubleVerbs.Count - 1)];
                 }
                 lastEncounterVerb = encounterVerb;
                 var encounterString = string.Format("You've {0} a level {1} {2} with {3} hit point{4}!",
