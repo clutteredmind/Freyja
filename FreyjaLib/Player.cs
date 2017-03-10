@@ -4,10 +4,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System;
-
 namespace FreyjaLib
 {
+    using System;
+
     /// <summary>
     /// Represents the player in the game
     /// </summary>
